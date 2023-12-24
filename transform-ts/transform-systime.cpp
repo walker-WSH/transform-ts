@@ -21,7 +21,9 @@ int64_t transform_systime::audio_transform_to_system(int64_t ts_ns, size_t sampl
 	int64_t os_time = os_gettime_ns();
 	int64_t transformed_ts = ts_ns;
 	bool ts_jumped = false;
-	timestamp_info old_info;
+	bool new_capture = false;
+	timestamp_info old_audio;
+	timestamp_info old_video;
 
 	{
 		std::scoped_lock<std::recursive_mutex> auto_lock(info_lock);
@@ -37,7 +39,10 @@ int64_t transform_systime::audio_transform_to_system(int64_t ts_ns, size_t sampl
 		} else {
 			do {
 				if (audio_info.prev_data_ts > 0 && ts_ns < audio_info.prev_data_ts) {
-					ts_jumped = true; // 新数据的时间戳 比上一帧的时间戳还小，说明开始了新的采集会话
+					new_capture = true; // 新数据的时间戳 比上一帧的时间戳还小，说明开始了新的采集会话
+					audio_info = timestamp_info();
+					video_info = timestamp_info();
+					assert(false);
 					break;
 				}
 
@@ -49,12 +54,14 @@ int64_t transform_systime::audio_transform_to_system(int64_t ts_ns, size_t sampl
 
 					} else if (diff < TS_SMOOTHING_THRESHOLD) {
 						ts_ns = audio_info.next_data_ts;
+						break;
 					}
 				}
 			} while (false);
 
-			if (ts_jumped) {
-				old_info = audio_info; // firstly save old value
+			if (new_capture || ts_jumped) {
+				old_audio = audio_info; // firstly save old value
+				old_video = video_info;
 				reset_timing(audio_info, ts_ns, os_time);
 			}
 		}
@@ -71,8 +78,14 @@ int64_t transform_systime::audio_transform_to_system(int64_t ts_ns, size_t sampl
 		}
 	}
 
-	if (ts_jumped && callback)
-		callback->request_clear_audio_catch(old_info);
+	if (callback) {
+		if (new_capture) {
+			callback->request_clear_audio_catch(old_audio);
+			callback->request_clear_video_catch(old_video);
+		} else if (ts_jumped) {
+			callback->request_clear_audio_catch(old_audio);
+		}
+	}
 
 	return transformed_ts;
 }
