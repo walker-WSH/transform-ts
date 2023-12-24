@@ -21,6 +21,7 @@ int64_t transform_systime::audio_transform_to_system(int64_t ts_ns, size_t sampl
 	int64_t os_time = os_gettime_ns();
 	int64_t transformed_ts = ts_ns;
 	bool ts_jumped = false;
+	timestamp_info old_info;
 
 	{
 		std::scoped_lock<std::recursive_mutex> auto_lock(info_lock);
@@ -37,6 +38,7 @@ int64_t transform_systime::audio_transform_to_system(int64_t ts_ns, size_t sampl
 			auto diff = uint64_diff(audio_info.next_data_ts, ts_ns);
 			if (diff > MAX_TS_VAR) {
 				ts_jumped = true;
+				old_info = audio_info;
 				reset_timing(audio_info, ts_ns, os_time);
 
 			} else if (diff < TS_SMOOTHING_THRESHOLD) {
@@ -57,7 +59,7 @@ int64_t transform_systime::audio_transform_to_system(int64_t ts_ns, size_t sampl
 	}
 
 	if (ts_jumped && callback)
-		callback->request_clear_audio_catch();
+		callback->request_clear_audio_catch(old_info);
 
 	return transformed_ts;
 }
@@ -88,6 +90,7 @@ void transform_systime::reset_timing(timestamp_info &info, int64_t ts_ns, int64_
 	info.timing_set = true;
 	info.timing_adjust = os_ns - ts_ns;
 	info.base_data_ts = ts_ns;
+
 	info.prev_data_ts = ts_ns;
 	info.next_data_ts = 0;
 }
