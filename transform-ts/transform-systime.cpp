@@ -34,15 +34,28 @@ int64_t transform_systime::audio_transform_to_system(int64_t ts_ns, size_t sampl
 		if (!audio_info.timing_set) {
 			reset_timing(audio_info, ts_ns, os_time);
 
-		} else if (audio_info.next_data_ts != 0) {
-			auto diff = uint64_diff(audio_info.next_data_ts, ts_ns);
-			if (diff > MAX_TS_VAR) {
-				ts_jumped = true;
-				old_info = audio_info;
-				reset_timing(audio_info, ts_ns, os_time);
+		} else {
+			do {
+				if (audio_info.prev_data_ts > 0 && ts_ns < audio_info.prev_data_ts) {
+					ts_jumped = true; // 新数据的时间戳 比上一帧的时间戳还小，说明开始了新的采集会话
+					break;
+				}
 
-			} else if (diff < TS_SMOOTHING_THRESHOLD) {
-				ts_ns = audio_info.next_data_ts;
+				if (audio_info.next_data_ts != 0) {
+					auto diff = uint64_diff(audio_info.next_data_ts, ts_ns);
+					if (diff > MAX_TS_VAR) {
+						ts_jumped = true;
+						break;
+
+					} else if (diff < TS_SMOOTHING_THRESHOLD) {
+						ts_ns = audio_info.next_data_ts;
+					}
+				}
+			} while (false);
+
+			if (ts_jumped) {
+				old_info = audio_info; // firstly save old value
+				reset_timing(audio_info, ts_ns, os_time);
 			}
 		}
 
@@ -108,6 +121,8 @@ int64_t transform_systime::frames_duration_ns(size_t sample_rate, size_t frames_
 
 int64_t transform_systime::get_best_adjust()
 {
+	// 如果音视频同时都有转换基数，则取对应最小的数据时间戳所计算出来的转换基数
+
 	std::scoped_lock<std::recursive_mutex> auto_lock(info_lock);
 
 	if (audio_info.timing_set && video_info.timing_set) {
