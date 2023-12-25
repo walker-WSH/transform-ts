@@ -6,14 +6,14 @@
 #include <chrono>
 
 struct timestamp_info {
-	volatile bool timing_set = false;   // µ±Ç°Êı¾İÁ÷µÄ×ª»»»ùÊıÊÇ·ñÒÑ¾­³õÊ¼»¯
-	volatile int64_t base_data_ts = 0;  // µ±Ç°Êı¾İÁ÷µÄ×ª»»»ùÊıËù»ùÓÚµÄÊı¾İÊ±¼ä´Á
-	volatile int64_t timing_adjust = 0; // µ±Ç°Êı¾İÁ÷¼ÆËã³öÀ´µÄ×ª»»»ùÊı
+	volatile bool timing_set = false;   // å½“å‰æ•°æ®æµçš„è½¬æ¢åŸºæ•°æ˜¯å¦å·²ç»åˆå§‹åŒ–
+	volatile int64_t base_data_ts = 0;  // å½“å‰æ•°æ®æµçš„è½¬æ¢åŸºæ•°æ‰€åŸºäºçš„æ•°æ®æ—¶é—´æˆ³
+	volatile int64_t timing_adjust = 0; // å½“å‰æ•°æ®æµè®¡ç®—å‡ºæ¥çš„è½¬æ¢åŸºæ•°
 
-	volatile int64_t used_timing_adjust = 0; // µ±Ç°Á÷Êµ¼ÊÊ¹ÓÃµÄ×ª»»»ùÊı¡£Èç¹ûÒôÊÓÆµÍ¬Ê±ÓĞ×ª»»»ùÊı£¬ÔòÈ¡»ù×¼Êı¾İÊ±¼ä´Á×îĞ¡µÄÖµËù¼ÆËã³öÀ´µÄ»ùÊı
+	volatile int64_t used_timing_adjust = 0; // å½“å‰æµå®é™…ä½¿ç”¨çš„è½¬æ¢åŸºæ•°ã€‚å¦‚æœéŸ³è§†é¢‘åŒæ—¶æœ‰è½¬æ¢åŸºæ•°ï¼Œåˆ™å–åŸºå‡†æ•°æ®æ—¶é—´æˆ³æœ€å°çš„å€¼æ‰€è®¡ç®—å‡ºæ¥çš„åŸºæ•°
 
-	volatile int64_t prev_data_ts = 0; // ÉÏÒ»Ö¡Êı¾İµÄÊ±¼ä´Á
-	volatile int64_t next_data_ts = 0; // ÀíÂÛÉÏÏÂÒ»Ö¡Êı¾İµÄÊ±¼ä´Á
+	volatile int64_t prev_data_ts = 0; // ä¸Šä¸€å¸§æ•°æ®çš„æ—¶é—´æˆ³
+	volatile int64_t next_data_ts = 0; // ç†è®ºä¸Šä¸‹ä¸€å¸§æ•°æ®çš„æ—¶é—´æˆ³
 };
 
 class transform_event {
@@ -28,8 +28,9 @@ public:
 	transform_systime(transform_event *cb);
 	virtual ~transform_systime() = default;
 
-	void reset();
+	void reset(); // é‡‡é›†ç«¯å¼€å§‹ä¸€ä¸ªæ–°çš„é‡‡é›†ä¼šè¯æ—¶ éœ€è¦è°ƒç”¨è¿™ä¸ªå‡½æ•°
 
+        // ä¼ å…¥çš„æ—¶é—´æˆ³ è¦ä¿è¯æ˜¯æ­£å¸¸é‡‡é›†ä¼šè¯ä¸­çš„æ—¶é—´æˆ³
 	int64_t audio_transform_to_system(int64_t ts_ns, size_t sample_rate, size_t frames_per_channel);
 	int64_t video_transform_to_system(int64_t ts_ns, int fps);
 
